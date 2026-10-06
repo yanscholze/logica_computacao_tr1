@@ -1,1 +1,3 @@
-Aqui colocar todos os arquivos que não devem ir para o GitHub, como arquivos de configuração local, arquivos temporários, logs, e outros arquivos que não são necessários para o projeto.
+Aqui colocar todos os arquivos que não devem ir para o GitHub, como arquivos de configuração local, arquivos temporários, logs, e outros arquivos que não são necessários para o projeto.__pycache__/
+*.pyc
+.pytest_cache/
