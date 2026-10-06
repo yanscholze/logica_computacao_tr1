@@ -41,3 +41,33 @@ print("Regra 2:", regra2)
 print("Regra 3:", regra3)
 print("Regra 4:", regra4)
 print("Regra 5:", regra5)
+
+
+# Situação de teste
+valores = {
+    "B": True,
+    "M": False,
+    "C": True,
+    "I": True,
+    "E": True,
+    "P": False
+}
+
+
+print("=== Diagnóstico Lógico de Partida ===")
+print()
+
+print("Regra 1:", regra1)
+print("Regra 2:", regra2)
+print("Regra 3:", regra3)
+print("Regra 4:", regra4)
+print("Regra 5:", regra5)
+
+print()
+print("=== Avaliação ===")
+
+print("Regra 1:", regra1.evaluate(valores))
+print("Regra 2:", regra2.evaluate(valores))
+print("Regra 3:", regra3.evaluate(valores))
+print("Regra 4:", regra4.evaluate(valores))
+print("Regra 5:", regra5.evaluate(valores))

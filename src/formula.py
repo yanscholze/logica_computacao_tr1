@@ -10,6 +10,9 @@ class Variable(Formula):
     def __str__(self):
         return self.name
 
+    def evaluate(self, values):
+        return values[self.name]
+
 
 class Not(Formula):
     def __init__(self, operand):
@@ -17,6 +20,9 @@ class Not(Formula):
 
     def __str__(self):
         return f"¬{self.operand}"
+
+    def evaluate(self, values):
+        return not self.operand.evaluate(values)
 
 
 class And(Formula):
@@ -27,6 +33,9 @@ class And(Formula):
     def __str__(self):
         return f"({self.left} ∧ {self.right})"
 
+    def evaluate(self, values):
+        return self.left.evaluate(values) and self.right.evaluate(values)
+
 
 class Or(Formula):
     def __init__(self, left, right):
@@ -35,6 +44,9 @@ class Or(Formula):
 
     def __str__(self):
         return f"({self.left} ∨ {self.right})"
+
+    def evaluate(self, values):
+        return self.left.evaluate(values) or self.right.evaluate(values)
 
 
 class Implies(Formula):
@@ -45,6 +57,9 @@ class Implies(Formula):
     def __str__(self):
         return f"({self.left} → {self.right})"
 
+    def evaluate(self, values):
+        return (not self.left.evaluate(values)) or self.right.evaluate(values)
+
 
 class Iff(Formula):
     def __init__(self, left, right):
@@ -53,3 +68,6 @@ class Iff(Formula):
 
     def __str__(self):
         return f"({self.left} ↔ {self.right})"
+
+    def evaluate(self, values):
+        return self.left.evaluate(values) == self.right.evaluate(values)
