@@ -12,6 +12,12 @@ class Variable(Formula):
 
     def evaluate(self, values):
         return values[self.name]
+    
+    def size(self):
+        return 1
+
+    def variables(self):
+        return {self.name}
 
 
 class Not(Formula):
@@ -24,6 +30,11 @@ class Not(Formula):
     def evaluate(self, values):
         return not self.operand.evaluate(values)
 
+    def size(self):
+        return 1 + self.operand.size()
+
+    def variables(self):
+        return self.operand.variables()
 
 class And(Formula):
     def __init__(self, left, right):
@@ -35,6 +46,12 @@ class And(Formula):
 
     def evaluate(self, values):
         return self.left.evaluate(values) and self.right.evaluate(values)
+
+    def variables(self):
+        return self.left.variables() | self.right.variables()
+
+    def size(self):
+        return 1 + self.left.size() + self.right.size()
 
 
 class Or(Formula):
@@ -48,6 +65,12 @@ class Or(Formula):
     def evaluate(self, values):
         return self.left.evaluate(values) or self.right.evaluate(values)
 
+    def variables(self):
+        return self.left.variables() | self.right.variables()
+
+    def size(self):
+        return 1 + self.left.size() + self.right.size()
+
 
 class Implies(Formula):
     def __init__(self, left, right):
@@ -60,6 +83,12 @@ class Implies(Formula):
     def evaluate(self, values):
         return (not self.left.evaluate(values)) or self.right.evaluate(values)
 
+    def variables(self):
+            return self.left.variables() | self.right.variables()
+
+    def size(self):
+        return 1 + self.left.size() + self.right.size()
+
 
 class Iff(Formula):
     def __init__(self, left, right):
@@ -71,3 +100,9 @@ class Iff(Formula):
 
     def evaluate(self, values):
         return self.left.evaluate(values) == self.right.evaluate(values)
+
+    def variables(self):
+        return self.left.variables() | self.right.variables()
+
+    def size(self):
+        return 1 + self.left.size() + self.right.size()
