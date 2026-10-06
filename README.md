@@ -58,6 +58,8 @@ Durante o desenvolvimento, o projeto deverá ser capaz de:
 - **Python**
 - **Git**
 - **GitHub**
+- **ChatGPT**
+- **Codex**
 
 ## Status
 
