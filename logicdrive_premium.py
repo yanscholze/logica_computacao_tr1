@@ -3,6 +3,8 @@ from PIL import Image
 from src.formula import Iff
 from src.r4_cnf import cnf_steps
 from pathlib import Path
+from datetime import datetime
+import winsound
 from src.diagnostico import (
     analisar_estado,
     SISTEMA,
@@ -174,16 +176,34 @@ logo_sub.pack(
 )
 
 
+botoes_menu = {}
+
+
+def selecionar_menu(nome):
+    for chave, botao in botoes_menu.items():
+
+        if chave == nome:
+            botao.configure(
+                fg_color="#12365A",
+                hover_color="#184873",
+                text_color="#FFFFFF"
+            )
+
+        else:
+            botao.configure(
+                fg_color="transparent",
+                hover_color="#141D28",
+                text_color=TEXT_MUTED
+            )
+
+
 def criar_botao_menu(texto, selecionado=False, command=None):
 
-    if selecionado:
-        fg = "#12365A"
-        hover = "#184873"
-        cor_texto = "#FFFFFF"
-    else:
-        fg = "transparent"
-        hover = "#141D28"
-        cor_texto = TEXT_MUTED
+    def ao_clicar():
+        selecionar_menu(texto)
+
+        if command:
+            command()
 
     botao = ctk.CTkButton(
         sidebar,
@@ -191,16 +211,16 @@ def criar_botao_menu(texto, selecionado=False, command=None):
         width=165,
         height=44,
         corner_radius=9,
-        fg_color=fg,
-        hover_color=hover,
-        text_color=cor_texto,
+        fg_color="#12365A" if selecionado else "transparent",
+        hover_color="#184873" if selecionado else "#141D28",
+        text_color="#FFFFFF" if selecionado else TEXT_MUTED,
         anchor="w",
-                font=ctk.CTkFont(
+        font=ctk.CTkFont(
             family="Segoe UI",
             size=13,
             weight="bold"
         ),
-        command=command
+        command=ao_clicar
     )
 
     botao.pack(
@@ -208,10 +228,15 @@ def criar_botao_menu(texto, selecionado=False, command=None):
         pady=5
     )
 
+    botoes_menu[texto] = botao
+
     return botao
 
 
-criar_botao_menu("⌂   Diagnóstico", True)
+criar_botao_menu(
+    "⌂   Diagnóstico",
+    True
+)
 
 criar_botao_menu(
     "◈   Modelos",
@@ -228,8 +253,10 @@ criar_botao_menu(
     command=lambda: mostrar_fnc()
 )
 
-criar_botao_menu("≡   Histórico")
-
+criar_botao_menu(
+    "≡   Histórico",
+    command=lambda: mostrar_historico()
+)
 
 versao = ctk.CTkLabel(
     sidebar,
@@ -825,40 +852,90 @@ botao_iniciar.pack(
     side="left",
     padx=(10, 0)
 )
-def animar_scanner(posicao=0.15, direcao=1):
-    """
-    Move a linha azul verticalmente sobre o veículo.
-    """
-
-    linha_scanner.place(
-        relx=0.5,
-        rely=posicao,
-        relwidth=0.92,
-        anchor="center"
-    )
-
-    # Movimento
-    posicao += 0.012 * direcao
-
-    # Chegou embaixo: volta para cima
-    if posicao >= 0.85:
-        direcao = -1
-
-    # Chegou em cima: desce novamente
-    elif posicao <= 0.15:
-        direcao = 1
-
-    app.after(
-        16,
-        lambda: animar_scanner(posicao, direcao)
-    )
 
 # ============================================================
 # EXECUTA
 # ============================================================
 scanner_ativo = False
+pulso_unsat_id = 0
 
 
+def som_inicio():
+    caminho = BASE_DIR / "assets" / "sounds" / "scan.wav"
+
+    winsound.PlaySound(
+        str(caminho),
+        winsound.SND_FILENAME
+        | winsound.SND_ASYNC
+        | winsound.SND_NODEFAULT
+    )
+
+    winsound.PlaySound(
+        str(caminho),
+        winsound.SND_FILENAME
+        | winsound.SND_ASYNC
+        | winsound.SND_NODEFAULT
+    )
+
+
+def som_sucesso():
+    winsound.PlaySound(
+        str(BASE_DIR / "assets" / "sounds" / "success.wav"),
+        winsound.SND_FILENAME | winsound.SND_ASYNC
+    )
+
+
+def som_falha():
+    winsound.PlaySound(
+        str(BASE_DIR / "assets" / "sounds" / "fail.wav"),
+        winsound.SND_FILENAME | winsound.SND_ASYNC
+    )
+
+
+def som_unsat():
+    winsound.PlaySound(
+        str(BASE_DIR / "assets" / "sounds" / "unsat.wav"),
+        winsound.SND_FILENAME | winsound.SND_ASYNC
+    )
+def mudar_estado_carro(cor, largura=2):
+    area_carro.configure(
+        border_color=cor,
+        border_width=largura
+    )
+
+
+def iniciar_pulso_unsat():
+    global pulso_unsat_id
+
+    pulso_unsat_id += 1
+    meu_id = pulso_unsat_id
+
+    def pulsar(aceso=True):
+        if meu_id != pulso_unsat_id:
+            return
+
+        if aceso:
+            area_carro.configure(
+                border_color=RED,
+                border_width=3
+            )
+        else:
+            area_carro.configure(
+                border_color="#5A1F26",
+                border_width=3
+            )
+
+        app.after(
+            420,
+            lambda: pulsar(not aceso)
+        )
+
+    pulsar()
+
+
+def parar_pulso_unsat():
+    global pulso_unsat_id
+    pulso_unsat_id += 1
 def animar_scanner(posicao=0.15, direcao=1):
     global scanner_ativo
 
@@ -902,6 +979,55 @@ VARIAVEL_SISTEMA = {
 }
 
 valores_atuais = {}
+historico_diagnosticos = []
+def registrar_historico():
+    nome_cenario = cenario_selecionado.get()
+
+    falhas = []
+
+    for nome in sistemas_diagnostico:
+        variavel = VARIAVEL_SISTEMA[nome]
+
+        if not valores_atuais[variavel]:
+            falhas.append(nome)
+
+    if nome_cenario == "Estado impossível / UNSAT":
+        formula = SISTEMA_INSATISFATIVEL
+    else:
+        formula = SISTEMA
+
+    modelos = find_models(formula)
+
+    status_logico = "SAT" if modelos else "UNSAT"
+
+    historico_diagnosticos.append({
+        "hora": datetime.now().strftime("%H:%M:%S"),
+        "cenario": nome_cenario,
+        "falhas": falhas,
+        "status": status_logico
+    })
+
+
+def som_sucesso():
+    winsound.PlaySound(
+        str(BASE_DIR / "assets" / "sounds" / "success.wav"),
+        winsound.SND_FILENAME | winsound.SND_ASYNC
+    )
+
+
+def som_falha():
+    winsound.PlaySound(
+        str(BASE_DIR / "assets" / "sounds" / "fail.wav"),
+        winsound.SND_FILENAME | winsound.SND_ASYNC
+    )
+
+
+def som_unsat():
+    winsound.PlaySound(
+        str(BASE_DIR / "assets" / "sounds" / "unsat.wav"),
+        winsound.SND_FILENAME | winsound.SND_ASYNC
+    )
+
 
 def iniciar_diagnostico():
     global scanner_ativo
@@ -912,6 +1038,10 @@ def iniciar_diagnostico():
     valores_atuais = CENARIOS[nome_cenario].copy()
 
     scanner_ativo = True
+
+    parar_pulso_unsat()
+    mudar_estado_carro(BLUE, 2)
+    som_inicio()
 
     botao_iniciar.configure(
         state="disabled",
@@ -938,7 +1068,6 @@ def iniciar_diagnostico():
         text="0%"
     )
 
-    # Limpa os estados anteriores
     for nome in sistemas_diagnostico:
         status_labels[nome].configure(
             text="AGUARDANDO",
@@ -947,9 +1076,7 @@ def iniciar_diagnostico():
         )
 
     animar_scanner()
-
     analisar_sistema(0)
-
 def analisar_sistema(indice):
     if indice >= len(sistemas_diagnostico):
         finalizar_animacao()
@@ -1029,8 +1156,19 @@ def finalizar_animacao():
         if not valores_atuais[variavel]:
             falhas.append(nome)
 
-    # Estado inconsistente com as regras lógicas
+    # ========================================================
+    # ESTADO IMPOSSÍVEL / UNSAT
+    # ========================================================
+
+          # ========================================================
+    # ESTADO IMPOSSÍVEL / UNSAT
+    # ========================================================
+
     if cenario_selecionado.get() == "Estado impossível / UNSAT":
+        mudar_estado_carro(RED, 3)
+        iniciar_pulso_unsat()
+        som_unsat()
+
         scan_texto.configure(
             text="INCONSISTÊNCIA LÓGICA DETECTADA",
             text_color=RED
@@ -1050,8 +1188,13 @@ def finalizar_animacao():
                 text="O estado informado viola as regras lógicas do sistema."
             )
 
-    # Algum sistema está em falha
+    # ========================================================
+    # FALHA NORMAL
+    # ========================================================
+
     elif falhas:
+        mudar_estado_carro(RED, 2)
+
         scan_texto.configure(
             text="DIAGNÓSTICO CONCLUÍDO",
             text_color=RED
@@ -1066,6 +1209,7 @@ def finalizar_animacao():
             resultado_descricao.configure(
                 text="O sistema indicado não atende às condições necessárias para a partida."
             )
+
         else:
             resultado_titulo.configure(
                 text=f"{len(falhas)} falhas detectadas",
@@ -1076,8 +1220,13 @@ def finalizar_animacao():
                 text="Sistemas: " + ", ".join(falhas)
             )
 
-    # Tudo funcionando
+    # ========================================================
+    # TUDO FUNCIONANDO
+    # ========================================================
+
     else:
+        mudar_estado_carro(GREEN, 2)
+
         scan_texto.configure(
             text="DIAGNÓSTICO CONCLUÍDO",
             text_color=GREEN
@@ -1089,8 +1238,12 @@ def finalizar_animacao():
         )
 
         resultado_descricao.configure(
-            text="Todas as condições lógicas necessárias foram satisfeitas."
+            text="Todas as condições necessárias foram satisfeitas."
         )
+
+    # ========================================================
+    # FINALIZA INTERFACE
+    # ========================================================
 
     barra_progresso.set(1)
 
@@ -1102,6 +1255,8 @@ def finalizar_animacao():
         state="normal",
         text="▶  EXECUTAR NOVAMENTE"
     )
+
+    registrar_historico()
 
 def mostrar_logica():
     # Usa o cenário atual mesmo que o diagnóstico ainda não tenha sido executado
@@ -1891,5 +2046,258 @@ def mostrar_fnc():
         ),
         clausulas_texto
     )
+
+def mostrar_historico():
+
+    janela_historico = ctk.CTkToplevel(app)
+
+    janela_historico.title("LogicDrive - Histórico")
+    janela_historico.geometry("820x680")
+    janela_historico.resizable(False, False)
+    janela_historico.configure(fg_color=BG)
+
+    janela_historico.transient(app)
+    janela_historico.grab_set()
+
+
+    # ========================================================
+    # CABEÇALHO
+    # ========================================================
+
+    titulo = ctk.CTkLabel(
+        janela_historico,
+        text="HISTÓRICO DE DIAGNÓSTICOS",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=24,
+            weight="bold"
+        ),
+        text_color=TEXT
+    )
+
+    titulo.pack(
+        padx=30,
+        pady=(28, 3),
+        anchor="w"
+    )
+
+
+    subtitulo = ctk.CTkLabel(
+        janela_historico,
+        text=(
+            f"{len(historico_diagnosticos)} "
+            "diagnóstico(s) realizado(s) nesta sessão"
+        ),
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=12
+        ),
+        text_color=TEXT_MUTED
+    )
+
+    subtitulo.pack(
+        padx=30,
+        pady=(0, 20),
+        anchor="w"
+    )
+
+
+    # ========================================================
+    # ÁREA DO HISTÓRICO
+    # ========================================================
+
+    area = ctk.CTkScrollableFrame(
+        janela_historico,
+        fg_color=BG,
+        corner_radius=0
+    )
+
+    area.pack(
+        fill="both",
+        expand=True,
+        padx=20,
+        pady=(0, 20)
+    )
+
+
+    # Nenhum diagnóstico ainda
+    if not historico_diagnosticos:
+
+        vazio = ctk.CTkFrame(
+            area,
+            fg_color=CARD,
+            corner_radius=14,
+            border_width=1,
+            border_color=BORDER
+        )
+
+        vazio.pack(
+            fill="x",
+            padx=10,
+            pady=10
+        )
+
+        ctk.CTkLabel(
+            vazio,
+            text="Nenhum diagnóstico realizado",
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=16,
+                weight="bold"
+            ),
+            text_color=TEXT
+        ).pack(
+            pady=(35, 6)
+        )
+
+        ctk.CTkLabel(
+            vazio,
+            text=(
+                "Execute um diagnóstico para que ele "
+                "apareça aqui."
+            ),
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=12
+            ),
+            text_color=TEXT_MUTED
+        ).pack(
+            pady=(0, 35)
+        )
+
+        return
+
+
+    # ========================================================
+    # CARDS DOS DIAGNÓSTICOS
+    # ========================================================
+
+    for numero, registro in enumerate(
+        reversed(historico_diagnosticos),
+        start=1
+    ):
+
+        card = ctk.CTkFrame(
+            area,
+            fg_color=CARD,
+            corner_radius=14,
+            border_width=1,
+            border_color=BORDER
+        )
+
+        card.pack(
+            fill="x",
+            padx=10,
+            pady=7
+        )
+
+
+        topo = ctk.CTkFrame(
+            card,
+            fg_color="transparent"
+        )
+
+        topo.pack(
+            fill="x",
+            padx=18,
+            pady=(15, 4)
+        )
+
+
+        hora = ctk.CTkLabel(
+            topo,
+            text=registro["hora"],
+            font=ctk.CTkFont(
+                family="Consolas",
+                size=12,
+                weight="bold"
+            ),
+            text_color=TEXT_MUTED
+        )
+
+        hora.pack(
+            side="left"
+        )
+
+
+        status = registro["status"]
+
+        status_label = ctk.CTkLabel(
+            topo,
+            text=status,
+            width=65,
+            height=27,
+            corner_radius=7,
+            fg_color=(
+                "#153827"
+                if status == "SAT"
+                else "#451C22"
+            ),
+            text_color=(
+                GREEN
+                if status == "SAT"
+                else RED
+            ),
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=11,
+                weight="bold"
+            )
+        )
+
+        status_label.pack(
+            side="right"
+        )
+
+
+        cenario = ctk.CTkLabel(
+            card,
+            text=registro["cenario"],
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=15,
+                weight="bold"
+            ),
+            text_color=TEXT
+        )
+
+        cenario.pack(
+            padx=18,
+            pady=(3, 6),
+            anchor="w"
+        )
+
+
+        if registro["falhas"]:
+
+            falhas_texto = (
+                "Sistemas afetados: "
+                + ", ".join(registro["falhas"])
+            )
+
+            cor_falhas = RED
+
+        else:
+
+            falhas_texto = "Nenhuma falha detectada"
+
+            cor_falhas = GREEN
+
+
+        falhas_label = ctk.CTkLabel(
+            card,
+            text=falhas_texto,
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=12
+            ),
+            text_color=cor_falhas
+        )
+
+        falhas_label.pack(
+            padx=18,
+            pady=(0, 16),
+            anchor="w"
+        )
 
 app.mainloop()
