@@ -79,6 +79,9 @@ O projeto implementa:
 ```text
 logica_computacao_tr1/
 │
+├── assets/
+│   ├── sounds/
+│   └── car.png
 ├── src/
 │   ├── __init__.py
 │   ├── formula.py
@@ -93,6 +96,7 @@ logica_computacao_tr1/
 │   ├── test_diagnostico.py
 │   └── test_r6.py
 │
+├── logicdrive_premium.py
 ├── main.py
 ├── README.md
 └── .gitignore
