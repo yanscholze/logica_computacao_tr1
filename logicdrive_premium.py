@@ -174,7 +174,7 @@ logo_sub.pack(
 )
 
 
-def criar_botao_menu(texto, selecionado=False):
+def criar_botao_menu(texto, selecionado=False, command=None):
 
     if selecionado:
         fg = "#12365A"
@@ -195,11 +195,12 @@ def criar_botao_menu(texto, selecionado=False):
         hover_color=hover,
         text_color=cor_texto,
         anchor="w",
-        font=ctk.CTkFont(
+                font=ctk.CTkFont(
             family="Segoe UI",
             size=13,
             weight="bold"
-        )
+        ),
+        command=command
     )
 
     botao.pack(
@@ -211,9 +212,22 @@ def criar_botao_menu(texto, selecionado=False):
 
 
 criar_botao_menu("⌂   Diagnóstico", True)
-criar_botao_menu("◈   Modelos")
-criar_botao_menu("⌘   Lógica")
-criar_botao_menu("ƒ   FNC")
+
+criar_botao_menu(
+    "◈   Modelos",
+    command=lambda: mostrar_modelos()
+)
+
+criar_botao_menu(
+    "⌘   Lógica",
+    command=lambda: mostrar_logica()
+)
+
+criar_botao_menu(
+    "ƒ   FNC",
+    command=lambda: mostrar_fnc()
+)
+
 criar_botao_menu("≡   Histórico")
 
 
