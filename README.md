@@ -251,6 +251,90 @@ python -m pytest -v
 ```
 
 ---
+## Interface gráfica — LogicDrive
+
+A interface gráfica do projeto está disponível na branch `felipe-ui-premium` e utiliza **CustomTkinter**.
+
+Ela permite selecionar diferentes cenários automotivos e visualizar o diagnóstico do veículo de forma interativa. A interface utiliza a lógica implementada em `src/diagnostico.py` para analisar os estados do sistema.
+
+### Manual de inicialização da UI
+
+#### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/yanscholze/logica_computacao_tr1.git
+cd logica_computacao_tr1
+```
+
+#### 2. Buscar as branches do projeto
+
+```bash
+git fetch --all
+```
+
+#### 3. Entrar na branch da interface
+
+```bash
+git checkout felipe-ui-premium
+```
+
+Caso a branch ainda não exista localmente:
+
+```bash
+git checkout -b felipe-ui-premium origin/felipe-ui-premium
+```
+
+#### 4. Instalar as dependências
+
+```bash
+python -m pip install customtkinter pillow pytest python-sat
+```
+
+No Linux, caso o comando utilizado seja `python3`:
+
+```bash
+python3 -m pip install customtkinter pillow pytest python-sat
+```
+
+As principais dependências são:
+
+- `customtkinter` — componentes da interface gráfica;
+- `Pillow` — carregamento da imagem do veículo;
+- `pytest` — execução dos testes automatizados;
+- `python-sat` — integração com o SAT Solver PySAT.
+
+#### 5. Iniciar a interface
+
+```bash
+python logicdrive_premium.py
+```
+
+No Linux:
+
+```bash
+python3 logicdrive_premium.py
+```
+
+### Inicialização rápida
+
+Para uma máquina que já possui Git e Python instalados:
+
+```bash
+git clone https://github.com/yanscholze/logica_computacao_tr1.git
+cd logica_computacao_tr1
+git fetch --all
+git checkout felipe-ui-premium
+python -m pip install customtkinter pillow pytest python-sat
+python logicdrive_premium.py
+```
+
+O arquivo principal da interface atual é:
+
+```text
+logicdrive_premium.py
+```
+
+O arquivo `logicdrive.py` corresponde ao protótipo inicial da interface desenvolvido com Tkinter.
 
 ## Integrantes
 
@@ -290,6 +374,7 @@ Ferramentas de inteligência artificial foram utilizadas como apoio durante o de
 ## Status
 
 **R1 a R6 implementados e testados.**
-**Implementação dos Extras.**
 
-Próxima etapa: desenvolvimento da interface e preparação da apresentação.
+**Extras implementados: parser, DPLL, Tseitin/DIMACS e integração com PySAT.**
+
+**Interface gráfica LogicDrive implementada na branch `felipe-ui-premium`.**
