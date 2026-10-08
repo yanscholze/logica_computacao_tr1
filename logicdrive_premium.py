@@ -1,7 +1,19 @@
 import customtkinter as ctk
 from PIL import Image
+from src.formula import Iff
+from src.r4_cnf import cnf_steps
 from pathlib import Path
-from src.diagnostico import analisar_estado
+from src.diagnostico import (
+    analisar_estado,
+    SISTEMA,
+    SISTEMA_INSATISFATIVEL
+)
+
+from src.r3_solver import (
+    find_models,
+    classify,
+    get_variables
+)
 
 # ============================================================
 # CONFIGURAÇÃO GERAL
@@ -732,7 +744,7 @@ botao_logica = ctk.CTkButton(
     hover_color="#1D3048",
     border_width=1,
     border_color="#29425F",
-    command=acao_temporaria
+    command=lambda: mostrar_logica()
 )
 
 botao_logica.pack(
@@ -751,7 +763,7 @@ botao_modelos = ctk.CTkButton(
     hover_color="#1D3048",
     border_width=1,
     border_color="#29425F",
-    command=acao_temporaria
+  command=lambda: mostrar_modelos()
 )
 
 botao_modelos.pack(
@@ -770,7 +782,7 @@ botao_fnc = ctk.CTkButton(
     hover_color="#1D3048",
     border_width=1,
     border_color="#29425F",
-    command=acao_temporaria
+    command=lambda: mostrar_fnc()
 )
 
 botao_fnc.pack(
@@ -1075,6 +1087,795 @@ def finalizar_animacao():
     botao_iniciar.configure(
         state="normal",
         text="▶  EXECUTAR NOVAMENTE"
+    )
+
+def mostrar_logica():
+    # Usa o cenário atual mesmo que o diagnóstico ainda não tenha sido executado
+    valores = (
+        valores_atuais
+        if valores_atuais
+        else CENARIOS[cenario_selecionado.get()]
+    )
+
+    B = valores["B"]
+    M = valores["M"]
+    C = valores["C"]
+    I = valores["I"]
+    E = valores["E"]
+    P = valores["P"]
+
+    def vf(valor):
+        return "V" if valor else "F"
+
+    # Avalia as mesmas regras utilizadas pelo diagnóstico
+    regras = [
+        (
+            "(B ∧ E) → M",
+            (not (B and E)) or M
+        ),
+        (
+            "(M ∧ C ∧ I ∧ E) → P",
+            (not (M and C and I and E)) or P
+        ),
+        (
+            "P → M",
+            (not P) or M
+        ),
+        (
+            "P → C",
+            (not P) or C
+        ),
+        (
+            "P → I",
+            (not P) or I
+        ),
+    ]
+
+    janela_logica = ctk.CTkToplevel(app)
+
+    janela_logica.title("LogicDrive - Análise Lógica")
+    janela_logica.geometry("760x650")
+    janela_logica.resizable(False, False)
+    janela_logica.configure(fg_color=BG)
+
+    # Mantém a janela na frente da principal
+    janela_logica.transient(app)
+    janela_logica.grab_set()
+
+
+    titulo = ctk.CTkLabel(
+        janela_logica,
+        text="RACIOCÍNIO LÓGICO",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=24,
+            weight="bold"
+        ),
+        text_color=TEXT
+    )
+
+    titulo.pack(
+        padx=30,
+        pady=(28, 3),
+        anchor="w"
+    )
+
+
+    subtitulo = ctk.CTkLabel(
+        janela_logica,
+        text=f"Cenário: {cenario_selecionado.get()}",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=12
+        ),
+        text_color=TEXT_MUTED
+    )
+
+    subtitulo.pack(
+        padx=30,
+        pady=(0, 20),
+        anchor="w"
+    )
+
+
+    # ========================================================
+    # VALORAÇÃO
+    # ========================================================
+
+    card_valores = ctk.CTkFrame(
+        janela_logica,
+        fg_color=CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=BORDER
+    )
+
+    card_valores.pack(
+        fill="x",
+        padx=30,
+        pady=(0, 14)
+    )
+
+
+    titulo_valores = ctk.CTkLabel(
+        card_valores,
+        text="VALORAÇÃO ATUAL",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=14,
+            weight="bold"
+        ),
+        text_color=BLUE
+    )
+
+    titulo_valores.pack(
+        padx=20,
+        pady=(16, 8),
+        anchor="w"
+    )
+
+
+    texto_valores = (
+        f"Bateria (B)              {vf(B)}\n"
+        f"ECU (E)                  {vf(E)}\n"
+        f"Motor de Partida (M)     {vf(M)}\n"
+        f"Combustível (C)          {vf(C)}\n"
+        f"Ignição (I)              {vf(I)}\n"
+        f"Motor funcionando (P)    {vf(P)}"
+    )
+
+
+    valores_label = ctk.CTkLabel(
+        card_valores,
+        text=texto_valores,
+        justify="left",
+        font=ctk.CTkFont(
+            family="Consolas",
+            size=13
+        ),
+        text_color=TEXT
+    )
+
+    valores_label.pack(
+        padx=20,
+        pady=(0, 18),
+        anchor="w"
+    )
+
+
+    # ========================================================
+    # REGRAS
+    # ========================================================
+
+    card_regras = ctk.CTkFrame(
+        janela_logica,
+        fg_color=CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=BORDER
+    )
+
+    card_regras.pack(
+        fill="both",
+        expand=True,
+        padx=30,
+        pady=(0, 25)
+    )
+
+
+    titulo_regras = ctk.CTkLabel(
+        card_regras,
+        text="REGRAS DO SISTEMA",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=14,
+            weight="bold"
+        ),
+        text_color=BLUE
+    )
+
+    titulo_regras.pack(
+        padx=20,
+        pady=(16, 10),
+        anchor="w"
+    )
+
+
+    for formula, resultado in regras:
+
+        linha = ctk.CTkFrame(
+            card_regras,
+            fg_color=CARD_2,
+            corner_radius=9
+        )
+
+        linha.pack(
+            fill="x",
+            padx=18,
+            pady=5
+        )
+
+
+        formula_label = ctk.CTkLabel(
+            linha,
+            text=formula,
+            font=ctk.CTkFont(
+                family="Consolas",
+                size=13,
+                weight="bold"
+            ),
+            text_color=TEXT
+        )
+
+        formula_label.pack(
+            side="left",
+            padx=14,
+            pady=11
+        )
+
+
+        resultado_label = ctk.CTkLabel(
+            linha,
+            text="✓ VERDADEIRA" if resultado else "✕ FALSA",
+            text_color=GREEN if resultado else RED,
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=11,
+                weight="bold"
+            )
+        )
+
+        resultado_label.pack(
+            side="right",
+            padx=14
+        )
+
+def mostrar_modelos():
+    nome_cenario = cenario_selecionado.get()
+
+    # No cenário especial, usamos a fórmula propositalmente insatisfatível
+    if nome_cenario == "Estado impossível / UNSAT":
+        formula = SISTEMA_INSATISFATIVEL
+    else:
+        formula = SISTEMA
+
+    # Usa diretamente as funções do R3
+    modelos = find_models(formula)
+    classificacao = classify(formula)
+    variaveis = sorted(get_variables(formula))
+
+    total_valoracoes = 2 ** len(variaveis)
+
+    # Usa a valoração atual do diagnóstico
+    valores = (
+        valores_atuais
+        if valores_atuais
+        else CENARIOS[nome_cenario]
+    )
+
+    valoracao_atual_satisfaz = formula.evaluate(valores)
+
+    status_sat = "SAT" if modelos else "UNSAT"
+
+    # ========================================================
+    # JANELA
+    # ========================================================
+
+    janela_modelos = ctk.CTkToplevel(app)
+
+    janela_modelos.title("LogicDrive - Modelos e SAT")
+    janela_modelos.geometry("820x700")
+    janela_modelos.resizable(False, False)
+    janela_modelos.configure(fg_color=BG)
+
+    janela_modelos.transient(app)
+    janela_modelos.grab_set()
+
+    titulo = ctk.CTkLabel(
+        janela_modelos,
+        text="MODELOS E SAT",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=24,
+            weight="bold"
+        ),
+        text_color=TEXT
+    )
+
+    titulo.pack(
+        padx=30,
+        pady=(28, 3),
+        anchor="w"
+    )
+
+    subtitulo = ctk.CTkLabel(
+        janela_modelos,
+        text=f"Cenário: {nome_cenario}",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=12
+        ),
+        text_color=TEXT_MUTED
+    )
+
+    subtitulo.pack(
+        padx=30,
+        pady=(0, 20),
+        anchor="w"
+    )
+
+    # ========================================================
+    # RESUMO
+    # ========================================================
+
+    resumo = ctk.CTkFrame(
+        janela_modelos,
+        fg_color=CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=BORDER
+    )
+
+    resumo.pack(
+        fill="x",
+        padx=30,
+        pady=(0, 15)
+    )
+
+    status_cor = GREEN if modelos else RED
+
+    status = ctk.CTkLabel(
+        resumo,
+        text=status_sat,
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=26,
+            weight="bold"
+        ),
+        text_color=status_cor
+    )
+
+    status.pack(
+        padx=20,
+        pady=(18, 4),
+        anchor="w"
+    )
+
+    info = ctk.CTkLabel(
+        resumo,
+        text=(
+            f"Classificação: {classificacao.upper()}\n"
+            f"Modelos encontrados: {len(modelos)} / {total_valoracoes}\n"
+            f"Variáveis: {len(variaveis)}"
+        ),
+        justify="left",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=12
+        ),
+        text_color=TEXT
+    )
+
+    info.pack(
+        padx=20,
+        pady=(0, 10),
+        anchor="w"
+    )
+
+    if valoracao_atual_satisfaz:
+        texto_atual = "✓ A valoração atual É um modelo da fórmula."
+        cor_atual = GREEN
+    else:
+        texto_atual = "✕ A valoração atual NÃO satisfaz a fórmula."
+        cor_atual = RED
+
+    valoracao_label = ctk.CTkLabel(
+        resumo,
+        text=texto_atual,
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=11,
+            weight="bold"
+        ),
+        text_color=cor_atual
+    )
+
+    valoracao_label.pack(
+        padx=20,
+        pady=(0, 18),
+        anchor="w"
+    )
+
+    # ========================================================
+    # LISTA DOS MODELOS
+    # ========================================================
+
+    area_modelos = ctk.CTkFrame(
+        janela_modelos,
+        fg_color=CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=BORDER
+    )
+
+    area_modelos.pack(
+        fill="both",
+        expand=True,
+        padx=30,
+        pady=(0, 25)
+    )
+
+    titulo_lista = ctk.CTkLabel(
+        area_modelos,
+        text="MODELOS ENCONTRADOS",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=14,
+            weight="bold"
+        ),
+        text_color=BLUE
+    )
+
+    titulo_lista.pack(
+        padx=20,
+        pady=(16, 10),
+        anchor="w"
+    )
+
+    if not modelos:
+
+        nenhum = ctk.CTkLabel(
+            area_modelos,
+            text=(
+                "Nenhum modelo satisfaz todas as restrições.\n\n"
+                "A fórmula é insatisfatível."
+            ),
+            justify="center",
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=16,
+                weight="bold"
+            ),
+            text_color=RED
+        )
+
+        nenhum.pack(
+            expand=True
+        )
+
+        return
+
+    tabela = ctk.CTkTextbox(
+        area_modelos,
+        fg_color="#0B1119",
+        text_color=TEXT,
+        font=ctk.CTkFont(
+            family="Consolas",
+            size=13
+        ),
+        corner_radius=10
+    )
+
+    tabela.pack(
+        fill="both",
+        expand=True,
+        padx=18,
+        pady=(0, 18)
+    )
+
+    # Cabeçalho
+    tabela.insert(
+        "end",
+        " | ".join(variaveis) + "\n"
+    )
+
+    tabela.insert(
+        "end",
+        "-" * (len(variaveis) * 4) + "\n"
+    )
+
+    # Modelos
+    for indice, modelo in enumerate(modelos, start=1):
+
+        valores_linha = []
+
+        for variavel in variaveis:
+            valor = "V" if modelo[variavel] else "F"
+            valores_linha.append(valor)
+
+        tabela.insert(
+            "end",
+            f"{indice:02d}.  " + " | ".join(valores_linha) + "\n"
+        )
+
+    tabela.configure(
+        state="disabled"
+    )
+
+def mostrar_fnc():
+    from src.formula import Variable, Not, And, Or, Implies, Iff
+
+    nome_cenario = cenario_selecionado.get()
+
+    # Usa a fórmula normal ou a fórmula impossível
+    if nome_cenario == "Estado impossível / UNSAT":
+        formula = SISTEMA_INSATISFATIVEL
+    else:
+        formula = SISTEMA
+
+    # Executa o R4 de verdade
+    etapas = cnf_steps(formula)
+
+    # --------------------------------------------------------
+    # Converte a árvore da fórmula para um texto mais bonito
+    # --------------------------------------------------------                                              
+    def formula_texto(f):
+        if isinstance(f, Variable):
+            return f.name
+
+        if isinstance(f, Not):
+            if isinstance(f.operand, Variable):
+                return f"¬{formula_texto(f.operand)}"
+
+            return f"¬({formula_texto(f.operand)})"
+
+        if isinstance(f, And):
+            return (
+                f"({formula_texto(f.left)} "
+                f"∧ {formula_texto(f.right)})"
+            )
+
+        if isinstance(f, Or):
+            return (
+                f"({formula_texto(f.left)} "
+                f"∨ {formula_texto(f.right)})"
+            )
+
+        if isinstance(f, Implies):
+            return (
+                f"({formula_texto(f.left)} "
+                f"→ {formula_texto(f.right)})"
+            )
+
+        if isinstance(f, Iff):
+            return (
+                f"({formula_texto(f.left)} "
+                f"↔ {formula_texto(f.right)})"
+            )
+
+        return str(f)
+
+    janela_fnc = ctk.CTkToplevel(app)
+
+    janela_fnc = ctk.CTkToplevel(app)
+
+    janela_fnc.title("LogicDrive - Conversão para FNC")
+
+    janela_fnc = ctk.CTkToplevel(app)
+
+    janela_fnc.title("LogicDrive - Conversão para FNC")
+    janela_fnc.geometry("900x760")
+    janela_fnc.resizable(False, False)
+    janela_fnc.configure(fg_color=BG)
+
+    janela_fnc.transient(app)
+    janela_fnc.grab_set()
+
+    titulo = ctk.CTkLabel(
+        janela_fnc,
+        text="CONVERSÃO PARA FNC",
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=24,
+            weight="bold"
+        ),
+        text_color=TEXT
+    )
+
+    titulo.pack(
+        padx=30,
+        pady=(26, 2),
+        anchor="w"
+    )
+
+    subtitulo = ctk.CTkLabel(
+        janela_fnc,
+        text=(
+            "Forma Normal Conjuntiva • "
+            f"Cenário: {nome_cenario}"
+        ),
+        font=ctk.CTkFont(
+            family="Segoe UI",
+            size=12
+        ),
+        text_color=TEXT_MUTED
+    )
+
+    subtitulo.pack(
+        padx=30,
+        pady=(0, 18),
+        anchor="w"
+    )
+
+    # Área com rolagem
+    area = ctk.CTkScrollableFrame(
+        janela_fnc,
+        fg_color=BG,
+        corner_radius=0
+    )
+
+    area.pack(
+        fill="both",
+        expand=True,
+        padx=20,
+        pady=(0, 20)
+    )
+
+    # --------------------------------------------------------
+    # FUNÇÃO PARA CRIAR CADA ETAPA
+    # --------------------------------------------------------
+
+    def adicionar_etapa(numero, titulo_etapa, descricao, conteudo):
+        card = ctk.CTkFrame(
+            area,
+            fg_color=CARD,
+            corner_radius=14,
+            border_width=1,
+            border_color=BORDER
+        )
+
+        card.pack(
+            fill="x",
+            padx=10,
+            pady=7
+        )
+
+        topo = ctk.CTkFrame(
+            card,
+            fg_color="transparent"
+        )
+
+        topo.pack(
+            fill="x",
+            padx=18,
+            pady=(14, 3)
+        )
+
+        numero_label = ctk.CTkLabel(
+            topo,
+            text=str(numero),
+            width=30,
+            height=30,
+            corner_radius=15,
+            fg_color=BLUE_DARK,
+            text_color=TEXT,
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=12,
+                weight="bold"
+            )
+        )
+
+        numero_label.pack(
+            side="left"
+        )
+
+        titulo_label = ctk.CTkLabel(
+            topo,
+            text=titulo_etapa,
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=14,
+                weight="bold"
+            ),
+            text_color=BLUE
+        )
+
+        titulo_label.pack(
+            side="left",
+            padx=10
+        )
+
+        descricao_label = ctk.CTkLabel(
+            card,
+            text=descricao,
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=11
+            ),
+            text_color=TEXT_MUTED
+        )
+
+        descricao_label.pack(
+            padx=18,
+            pady=(0, 8),
+            anchor="w"
+        )
+
+        texto = ctk.CTkTextbox(
+            card,
+            height=85,
+            fg_color="#0B1119",
+            text_color=TEXT,
+            border_width=0,
+            corner_radius=9,
+            wrap="word",
+            font=ctk.CTkFont(
+                family="Consolas",
+                size=12
+            )
+        )
+
+        texto.pack(
+            fill="x",
+            padx=18,
+            pady=(0, 16)
+        )
+
+        texto.insert(
+            "1.0",
+            conteudo
+        )
+
+        texto.configure(
+            state="disabled"
+        )
+
+    # --------------------------------------------------------
+    # ETAPAS REAIS DO R4
+    # --------------------------------------------------------
+
+    adicionar_etapa(
+        1,
+        "FÓRMULA ORIGINAL",
+        "Fórmula lógica antes de qualquer transformação.",
+        formula_texto(etapas["original"])
+    )
+
+    adicionar_etapa(
+        2,
+        "ELIMINAÇÃO DAS IMPLICAÇÕES",
+        "Substituímos A → B por ¬A ∨ B.",
+        formula_texto(etapas["sem_implicacoes"])
+    )
+
+    adicionar_etapa(
+        3,
+        "FORMA NORMAL DA NEGAÇÃO",
+        "As negações passam a aparecer somente sobre variáveis.",
+        formula_texto(etapas["fnn"])
+    )
+
+    adicionar_etapa(
+        4,
+        "FORMA NORMAL CONJUNTIVA",
+        "Distribuímos ∨ sobre ∧ até obter uma conjunção de cláusulas.",
+        formula_texto(etapas["fnc"])
+    )
+
+    # --------------------------------------------------------
+    # CLÁUSULAS
+    # --------------------------------------------------------
+
+    clausulas_texto = ""
+
+    for indice, clausula in enumerate(
+        etapas["clausulas"],
+        start=1
+    ):
+        clausulas_texto += (
+            f"C{indice:02d}:  "
+            f"({' ∨ '.join(clausula)})\n"
+        )
+
+    adicionar_etapa(
+        5,
+        "CLÁUSULAS DA FNC",
+        (
+            f"Resultado final separado em "
+            f"{len(etapas['clausulas'])} cláusulas."
+        ),
+        clausulas_texto
     )
 
 app.mainloop()
