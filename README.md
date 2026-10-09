@@ -357,7 +357,7 @@ O arquivo `logicdrive.py` corresponde ao protótipo inicial da interface desenvo
 | Felipe | Busca de modelos e classificação SAT (R3) |
 | Felipe | Conversão para Forma Normal Conjuntiva (R4) |
 | Yan | Implementação dos Extras |
-| Yan e Felipe | Implementaçã oda UI/UX |
+| Felipe | Implementação da UI/UX |
 | Grupo | Modelagem, testes, documentação e apresentação |
 
 
