@@ -4,7 +4,13 @@ from src.formula import Iff
 from src.r4_cnf import cnf_steps
 from pathlib import Path
 from datetime import datetime
-import winsound
+import shutil
+import subprocess
+
+try:
+    import winsound
+except ImportError:
+    winsound = None
 from src.diagnostico import (
     analisar_estado,
     SISTEMA,
@@ -861,42 +867,52 @@ pulso_unsat_id = 0
 
 
 def som_inicio():
-    caminho = BASE_DIR / "assets" / "sounds" / "scan.wav"
+    tocar_som("scan.wav")
 
-    winsound.PlaySound(
-        str(caminho),
-        winsound.SND_FILENAME
-        | winsound.SND_ASYNC
-        | winsound.SND_NODEFAULT
+
+def tocar_som(nome_arquivo):
+    caminho = BASE_DIR / "assets" / "sounds" / nome_arquivo
+
+    if winsound is not None:
+        winsound.PlaySound(
+            str(caminho),
+            winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT
+        )
+        return
+
+    # No Linux, usa o primeiro reprodutor de áudio disponível no sistema.
+    reprodutores = (
+        ("pw-play", [str(caminho)]),
+        ("paplay", [str(caminho)]),
+        ("aplay", ["-q", str(caminho)]),
+        ("ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", str(caminho)]),
     )
 
-    winsound.PlaySound(
-        str(caminho),
-        winsound.SND_FILENAME
-        | winsound.SND_ASYNC
-        | winsound.SND_NODEFAULT
-    )
+    for executavel, argumentos in reprodutores:
+        programa = shutil.which(executavel)
+        if programa:
+            try:
+                subprocess.Popen(
+                    [programa, *argumentos],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+            except OSError:
+                pass
+            return
 
 
 def som_sucesso():
-    winsound.PlaySound(
-        str(BASE_DIR / "assets" / "sounds" / "success.wav"),
-        winsound.SND_FILENAME | winsound.SND_ASYNC
-    )
+    tocar_som("success.wav")
 
 
 def som_falha():
-    winsound.PlaySound(
-        str(BASE_DIR / "assets" / "sounds" / "fail.wav"),
-        winsound.SND_FILENAME | winsound.SND_ASYNC
-    )
+    tocar_som("fail.wav")
 
 
 def som_unsat():
-    winsound.PlaySound(
-        str(BASE_DIR / "assets" / "sounds" / "unsat.wav"),
-        winsound.SND_FILENAME | winsound.SND_ASYNC
-    )
+    tocar_som("unsat.wav")
 def mudar_estado_carro(cor, largura=2):
     area_carro.configure(
         border_color=cor,
@@ -1009,24 +1025,15 @@ def registrar_historico():
 
 
 def som_sucesso():
-    winsound.PlaySound(
-        str(BASE_DIR / "assets" / "sounds" / "success.wav"),
-        winsound.SND_FILENAME | winsound.SND_ASYNC
-    )
+    tocar_som("success.wav")
 
 
 def som_falha():
-    winsound.PlaySound(
-        str(BASE_DIR / "assets" / "sounds" / "fail.wav"),
-        winsound.SND_FILENAME | winsound.SND_ASYNC
-    )
+    tocar_som("fail.wav")
 
 
 def som_unsat():
-    winsound.PlaySound(
-        str(BASE_DIR / "assets" / "sounds" / "unsat.wav"),
-        winsound.SND_FILENAME | winsound.SND_ASYNC
-    )
+    tocar_som("unsat.wav")
 
 
 def iniciar_diagnostico():

@@ -1,33 +1,25 @@
-# Diagnóstico Lógico de Partida de um Veículo
+# LogicDrive — Diagnóstico lógico automotivo
 
-Projeto desenvolvido para a disciplina de **Lógica para Computação**.
+Projeto acadêmico de **Lógica para Computação**. O LogicDrive representa condições de partida de um veículo com lógica proposicional e usa essas fórmulas para avaliar estados, encontrar modelos e explicar quando um cenário é satisfatível.
 
-O sistema utiliza lógica proposicional para representar e analisar as condições envolvidas na partida de um veículo, integrando representação de fórmulas, avaliação de valorações, busca de modelos, SAT e conversão para Forma Normal Conjuntiva (FNC).
+## Interface gráfica
 
----
+A interface completa está em `logicdrive_premium.py`. Ela permite escolher cenários, executar o diagnóstico e consultar modelos, regras, conversão para FNC e o histórico da sessão. `logicdrive.py` é um protótipo simples em Tkinter; `main.py` demonstra as operações no terminal.
 
-## Contexto
+O arquivo da interface já está na branch padrão `main` do repositório. Ao clonar o projeto, **não é necessário trocar para `felipe-ui-premium`**.
 
-O projeto representa algumas condições básicas envolvidas no funcionamento de um veículo por meio de variáveis proposicionais.
+## O modelo lógico
 
-### Variáveis
+| Símbolo | Significado |
+| --- | --- |
+| `B` | A bateria tem tensão adequada |
+| `M` | O motor de partida gira |
+| `C` | Há combustível |
+| `I` | O sistema de ignição funciona |
+| `E` | A ECU permite a partida |
+| `P` | O motor entra em funcionamento |
 
-| Variável | Significado |
-|----------|-------------|
-| `B` | Bateria possui tensão adequada |
-| `M` | Motor de partida gira |
-| `C` | Combustível disponível |
-| `I` | Sistema de ignição funciona |
-| `E` | ECU permite a partida |
-| `P` | Motor entra em funcionamento |
-
-Cada variável pode assumir os valores `True` ou `False`.
-
----
-
-## Regras do sistema
-
-O diagnóstico utiliza as seguintes restrições:
+O sistema usa as regras:
 
 ```text
 (B ∧ E) → M
@@ -37,363 +29,126 @@ P → C
 P → I
 ```
 
-Por exemplo:
-
-```text
-(M ∧ C ∧ I ∧ E) → P
-```
-
-significa:
-
-> Se o motor de partida gira, existe combustível, o sistema de ignição funciona e a ECU permite a partida, então o motor entra em funcionamento.
-
-Todas as regras são reunidas em uma única fórmula lógica, permitindo analisar o sistema completo.
-
----
+Também há um cenário propositalmente inconsistente para demonstrar um conjunto de regras insatisfatível (UNSAT).
 
 ## Funcionalidades
 
-O projeto implementa:
-
-- representação de fórmulas através de uma Árvore Sintática Abstrata (AST);
-- operadores `¬`, `∧`, `∨`, `→` e `↔`;
-- impressão de fórmulas em notação infixa;
-- avaliação de fórmulas para uma determinada valoração;
-- identificação das variáveis de uma fórmula;
-- cálculo do tamanho da AST;
-- busca exaustiva de modelos;
-- identificação de satisfatibilidade;
-- contagem de modelos;
-- classificação como válida, contingente ou insatisfatível;
+- AST de fórmulas proposicionais com `¬`, `∧`, `∨`, `→` e `↔`;
+- avaliação de fórmulas, identificação de variáveis e tamanho da AST;
+- parser de fórmulas escritas em texto;
+- busca e contagem de modelos e classificação SAT;
 - conversão clássica para Forma Normal Conjuntiva (FNC);
-- geração da lista de cláusulas da FNC;
-- diagnóstico aplicado ao contexto automotivo;
-- variante propositalmente insatisfatível;
-- testes automatizados;
-- verificação da equivalência entre a fórmula original e sua FNC por tabela-verdade.
+- transformação de Tseitin, exportação DIMACS e solver DPLL;
+- integração opcional com o solver PySAT;
+- diagnóstico aplicado aos cenários automotivos da interface.
 
----
+## Executar no Linux
 
-## Estrutura
+### Fedora
 
-```text
-logica_computacao_tr1/
-│
-├── assets/
-│   ├── sounds/
-│   └── car.png
-├── src/
-│   ├── __init__.py
-│   ├── formula.py
-│   ├── r3_solver.py
-│   ├── r4_cnf.py
-│   └── diagnostico.py
-│
-├── tests/
-│   ├── test_formula.py
-│   ├── test_r3_solver.py
-│   ├── test_r4_cnf.py
-│   ├── test_diagnostico.py
-│   └── test_r6.py
-│
-├── logicdrive_premium.py
-├── main.py
-├── README.md
-└── .gitignore
-```
-
----
-
-## Execução
-
-### Requisitos
-
-- Python 3
-- pytest
-
-Instale o pytest, caso necessário:
+Instale Python, `pip` e o suporte do Tkinter fornecido pelo sistema:
 
 ```bash
-python -m pip install pytest
+sudo dnf install python3 python3-pip python3-tkinter
 ```
 
-Execute a demonstração:
+Na pasta do projeto, crie um ambiente virtual e instale as bibliotecas da interface:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install customtkinter pillow
+python logicdrive_premium.py
+```
+
+Use o ambiente virtual sempre que for iniciar a interface. Para ativá-lo novamente em outro terminal:
+
+```bash
+cd "/caminho/para/logica_computacao_tr1"
+source .venv/bin/activate
+python logicdrive_premium.py
+```
+
+O ambiente virtual instala sua própria versão do Pillow, incluindo `PIL.ImageTk`. Isso evita a separação desse módulo feita pelo pacote RPM do Fedora. Se optar por usar o Pillow do sistema fora de um ambiente virtual, instale também `sudo dnf install python3-pillow-tk`.
+
+O código mantém `winsound` no Windows. No Linux, tenta tocar os arquivos WAV usando o primeiro programa disponível entre `pw-play`, `paplay`, `aplay` e `ffplay`. Se nenhum estiver instalado, a interface continua funcionando, mas sem efeitos sonoros.
+
+### Ubuntu e Debian
+
+Instale o Python, o suporte de ambientes virtuais e o Tkinter:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-venv python3-tk
+```
+
+Depois, siga os mesmos comandos de criação e ativação do ambiente virtual acima.
+
+## Executar no Windows
+
+Com Python instalado, abra o terminal na pasta do projeto e rode:
+
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install customtkinter pillow
+python logicdrive_premium.py
+```
+
+## Demonstração no terminal
+
+Para executar os exemplos de lógica sem abrir a interface:
 
 ```bash
 python main.py
 ```
 
-Execute todos os testes:
-
-```bash
-python -m pytest
-```
-
-Para visualizar cada teste individualmente:
-
-```bash
-python -m pytest -v
-```
-
----
-
-## Representação das fórmulas
-
-As fórmulas são representadas através de objetos que formam uma AST.
-
-Exemplo:
-
-```python
-P = Variable("P")
-Q = Variable("Q")
-
-formula = Implies(P, Q)
-```
-
-Representa:
-
-```text
-P → Q
-```
-
-Internamente:
-
-```text
-    →
-   / \
-  P   Q
-```
-
-A avaliação percorre essa árvore recursivamente.
-
----
-
-## Busca de modelos e SAT
-
-Para uma fórmula com `n` variáveis existem:
-
-```text
-2^n
-```
-
-valorações possíveis.
-
-O projeto percorre essas combinações e identifica quais tornam a fórmula verdadeira.
-
-Com isso, uma fórmula pode ser classificada como:
-
-- **válida** — verdadeira em todas as valorações;
-- **contingente** — verdadeira apenas em algumas valorações;
-- **insatisfatível** — falsa em todas as valorações.
-
----
-
-## Forma Normal Conjuntiva
-
-A conversão para FNC é realizada em três etapas principais:
-
-1. eliminação de `→` e `↔`;
-2. transformação para Forma Normal da Negação (FNN);
-3. distribuição de `∨` sobre `∧`.
-
-Exemplo:
-
-```text
-P → Q
-```
-
-torna-se:
-
-```text
-¬P ∨ Q
-```
-
-A FNC também pode ser exportada como uma lista de cláusulas.
-
----
-
-## Variante insatisfatível
-
-Para demonstrar um caso sem modelos, o projeto utiliza:
-
-```text
-SISTEMA ∧ P ∧ ¬M
-```
-
-Como uma das regras do sistema estabelece:
-
-```text
-P → M
-```
-
-não existe uma valoração capaz de satisfazer simultaneamente `P` e `¬M`.
-
-Logo, essa variante é **insatisfatível (UNSAT)**.
-
----
-
 ## Testes
 
-Os testes automatizados verificam, entre outros casos:
+Com o ambiente virtual ativo, instale as dependências de desenvolvimento:
 
-- avaliação das fórmulas;
-- busca e contagem de modelos;
-- tautologia;
-- contradição;
-- fórmula contingente;
-- eliminação de implicações;
-- Leis de De Morgan;
-- distribuição para FNC;
-- geração de cláusulas;
-- diagnóstico automotivo;
-- equivalência entre a fórmula original e a FNC por tabela-verdade.
+```bash
+python -m pip install pytest python-sat
+```
 
-Execute:
+Execute a suíte:
 
 ```bash
 python -m pytest -v
 ```
 
----
-## Interface gráfica — LogicDrive
+`python-sat` é necessário para os testes da integração com PySAT; a interface gráfica não depende desse solver externo.
 
-A interface gráfica do projeto está disponível na branch `felipe-ui-premium` e utiliza **CustomTkinter**.
-
-Ela permite selecionar diferentes cenários automotivos e visualizar o diagnóstico do veículo de forma interativa. A interface utiliza a lógica implementada em `src/diagnostico.py` para analisar os estados do sistema.
-
-### Manual de inicialização da UI
-
-#### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/yanscholze/logica_computacao_tr1.git
-cd logica_computacao_tr1
-```
-
-#### 2. Buscar as branches do projeto
-
-```bash
-git fetch --all
-```
-
-#### 3. Entrar na branch da interface
-
-```bash
-git checkout felipe-ui-premium
-```
-
-Caso a branch ainda não exista localmente:
-
-```bash
-git checkout -b felipe-ui-premium origin/felipe-ui-premium
-```
-
-#### 4. Instalar as dependências
-
-```bash
-python -m pip install customtkinter pillow pytest python-sat
-```
-
-No Linux, caso o comando utilizado seja `python3`:
-
-```bash
-python3 -m pip install customtkinter pillow pytest python-sat
-```
-
-As principais dependências são:
-
-- `customtkinter` — componentes da interface gráfica;
-- `Pillow` — carregamento da imagem do veículo;
-- `pytest` — execução dos testes automatizados;
-- `python-sat` — integração com o SAT Solver PySAT.
-
-#### 5. Iniciar a interface
-
-```bash
-python logicdrive_premium.py
-```
-
-No Linux:
-
-```bash
-python3 logicdrive_premium.py
-```
-**Rodar as linhas abaixo caso retorne erro**
-```
-sudo dnf(ou o gerenciador de pacotes da sua distro) install python3-pillow-tk
-python -c "from PIL import ImageTk; print('ImageTk OK')"
-python logicdrive_premium.py
-
-(Talvez seja necessário instalar alguma libs para as dependências do projeto)
-
-sudo dnf install python3-pip python3-tkinter
-cd "/(o caminho no seu pc)/logica_tr1"
- /usr/bin/python -m venv .venv
-source .venv/bin/activate
-python -m pip install customtkinter pillow
-python logicdrive_premium.py
-```
-
-### Inicialização rápida
-
-Para uma máquina que já possui Git e Python instalados:
-
-```bash
-git clone https://github.com/yanscholze/logica_computacao_tr1.git
-cd logica_computacao_tr1
-git fetch --all
-git checkout felipe-ui-premium
-python -m pip install customtkinter pillow pytest python-sat
-python logicdrive_premium.py
-```
-
-O arquivo principal da interface atual é:
+## Estrutura do projeto
 
 ```text
-logicdrive_premium.py
+├── assets/
+│   ├── car.png
+│   └── sounds/              # efeitos sonoros WAV
+├── src/
+│   ├── diagnostico.py       # regras e diagnóstico automotivo
+│   ├── dpll.py              # solver DPLL
+│   ├── formula.py           # AST e operadores lógicos
+│   ├── parser.py            # parser de fórmulas
+│   ├── r3_solver.py         # busca de modelos e classificação SAT
+│   ├── r4_cnf.py            # conversão para FNC
+│   ├── solver_real.py       # integração PySAT
+│   └── tseitin.py           # Tseitin e DIMACS
+├── tests/
+├── logicdrive.py            # protótipo Tkinter
+├── logicdrive_premium.py    # interface principal
+├── main.py                  # demonstração no terminal
+└── README.md
 ```
-
-O arquivo `logicdrive.py` corresponde ao protótipo inicial da interface desenvolvido com Tkinter.
 
 ## Integrantes
 
-- **Yan**
-- **Felipe**
-- **Vinicius**
+- Yan
+- Felipe
+- Vinicius
 
----
+## Ferramentas
 
-## Divisão das atividades
-
-| Integrante | Responsabilidade |
-|------------|------------------|
-| Yan | Estrutura dos Dados, Impressão e avaliação (R1 e R2) |
-| Yan | Aplicação do diagnóstico automotivo, integração e testes (R5 e R6) |
-| Felipe | Busca de modelos e classificação SAT (R3) |
-| Felipe | Conversão para Forma Normal Conjuntiva (R4) |
-| Yan | Implementação dos Extras |
-| Felipe | Implementação da UI/UX |
-| Grupo | Modelagem, testes, documentação e apresentação |
-
-
----
-## Ferramentas utilizadas
-
-- Python
-- pytest
-- Git
-- GitHub
-- ChatGPT
-- Codex
-
-Ferramentas de inteligência artificial foram utilizadas como apoio durante o desenvolvimento, revisão, organização e compreensão do código.
-
----
-
-## Status
-
-**R1 a R6 implementados e testados.**
-
-**Extras implementados: parser, DPLL, Tseitin/DIMACS e integração com PySAT.**
-
-**Interface gráfica LogicDrive implementada na branch `felipe-ui-premium`.**
+Python, CustomTkinter, Pillow, pytest, PySAT, Git e GitHub. Ferramentas de IA foram utilizadas como apoio ao desenvolvimento e à documentação.
