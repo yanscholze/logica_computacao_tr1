@@ -317,7 +317,9 @@ No Linux:
 
 ```bash
 python3 logicdrive_premium.py
-
+```
+Rodar as linhas abaixo caso retorne erro**
+```
 sudo dnf install python3-pillow-tk
 python -c "from PIL import ImageTk; print('ImageTk OK')"
 python logicdrive_premium.py
