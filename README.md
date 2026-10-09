@@ -317,6 +317,19 @@ No Linux:
 
 ```bash
 python3 logicdrive_premium.py
+
+sudo dnf install python3-pillow-tk
+python -c "from PIL import ImageTk; print('ImageTk OK')"
+python logicdrive_premium.py
+
+(Talvez seja necessário instalar alguma libs para as dependências do projeto)
+
+sudo dnf install python3-pip python3-tkinter
+cd "/(o caminho no seu pc)/logica_tr1"
+ /usr/bin/python -m venv .venv
+source .venv/bin/activate
+python -m pip install customtkinter pillow
+python logicdrive_premium.py
 ```
 
 ### Inicialização rápida
